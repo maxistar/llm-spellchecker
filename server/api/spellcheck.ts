@@ -1,6 +1,7 @@
 import { defineEventHandler } from 'h3';
 import OpenAI from "openai";
-const openai = new OpenAI();
+const runtimeConfig = useRuntimeConfig()
+const openai = new OpenAI({ apiKey: runtimeConfig.apiSecret });
 
 async function requestLLModel(prompt:string, data:string) {        
     const completion = await openai.chat.completions.create({

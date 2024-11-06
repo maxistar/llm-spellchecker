@@ -7,5 +7,6 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   runtimeConfig: {
     apiSecret: process.env.NUXT_API_SECRET,
+    claudeApiSecret: process.env.NUXT_CLAUDE_API_SECRET,
   }
 })

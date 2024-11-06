@@ -1,13 +1,20 @@
 import { defineEventHandler } from 'h3';
 import OpenAI from "openai";
+import Client from '@anthropic-ai/sdk';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { diffWords } from 'diff';
 
 
 
 const runtimeConfig = useRuntimeConfig()
 const openai = new OpenAI({ apiKey: runtimeConfig.apiSecret });
 const logDir = path.join(process.cwd(), 'logs');
+
+
+const anthropic = new Client({
+    apiKey: runtimeConfig.claudeApiSecret
+});
 
 // Ensure the logs directory exists
 async function ensureLogDirectory() {
@@ -41,7 +48,7 @@ async function logToFile(model: string, prompt: string, data: string, response: 
     }
 }
 
-async function requestLLModel(prompt:string, data:string, model:string) {        
+async function requestOpenAI(prompt:string, data:string, model:string) {        
     const completion = await openai.chat.completions.create({
         model: model,
         messages: [
@@ -54,11 +61,38 @@ async function requestLLModel(prompt:string, data:string, model:string) {
     });
 
     const response = completion.choices[0].message.content as string;
-    
-    await logToFile(model, prompt, data, response);
-    
     return response;
 }
+
+async function requestClaude(prompt: string, data: string, model:string) {
+    const response = await anthropic.messages.create({
+        model: model,
+        messages: [{ role: 'user', content: `${prompt}\n\n${data}` }],
+        max_tokens: 1020,
+    });
+
+    console.log(response)
+    return response.content[0].text as string;
+}
+
+const highlightChanges = (original: string, corrected: string): string => {
+    const differences = diffWords(original, corrected);
+
+    return differences
+        .map(part => {
+            if (part.added) {
+                // Wrap added/changed text in a span with a highlight class
+                return `<span class="highlight">${part.value}</span>`;
+            } else if (part.removed) {
+                // Ignore removed text from the original
+                return '';
+            } else {
+                // Unchanged text remains as is
+                return part.value;
+            }
+        })
+        .join('');
+};
 
 export default defineEventHandler(async (event) => {
     const method = event.req.method;
@@ -71,5 +105,16 @@ export default defineEventHandler(async (event) => {
     const body = await readBody(event);
     const { prompt, text, model } = body;
 
-    return {responce: await requestLLModel(prompt, text, model)};
+    let response;
+    if (model === "claude-3-5-sonnet-20241022") {
+        response = await requestClaude(prompt, text, model);
+    } else {
+        response = await requestOpenAI(prompt, text, model);
+    }
+
+    await logToFile(model, prompt, text, response);
+
+    const highlightedHtml = highlightChanges(text, response);
+    
+    return { corrected: response, response: highlightedHtml };
 });

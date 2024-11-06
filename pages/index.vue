@@ -20,11 +20,13 @@
              <option value="gpt-4">GPT-4</option>
              <option value="gpt-4o">GPT-4o</option>
              <option value="gpt-4-turbo">GPT-4-Turbo</option>
+             <option value="claude-3-5-sonnet-20241022">claude-3-5-sonnet-20241022</option>
+             
            </select>
            <div class="process-separator"></div>
            <button class="process-button" @click="processText">Обработать</button>
          </div>
-         <pre class="output-text" id="result">{{ result }}</pre>
+         <pre class="output-text" id="result" v-html="result"></pre>
       </div>
    </div>
 </template>
@@ -52,7 +54,7 @@ const processText = async () => {
 
     if (response.ok) {
         const content = await response.json();
-        result.value = content.responce.content;
+        result.value = content.response;
     } else {
         result.value = 'Ошибка: Не удалось обработать текст';
     }
@@ -98,6 +100,10 @@ body {
   height: 200px;
   overflow: auto;
   text-wrap: auto;
+}
+
+.highlight {
+  background-color: yellow;
 }
 
 </style>

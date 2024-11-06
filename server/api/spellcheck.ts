@@ -3,9 +3,9 @@ import OpenAI from "openai";
 const runtimeConfig = useRuntimeConfig()
 const openai = new OpenAI({ apiKey: runtimeConfig.apiSecret });
 
-async function requestLLModel(prompt:string, data:string) {        
+async function requestLLModel(prompt:string, data:string, model:string) {        
     const completion = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: model,
         messages: [
             {role: "system", content: prompt},
             {
@@ -27,11 +27,7 @@ export default defineEventHandler(async (event) => {
     } 
 
     const body = await readBody(event);
-    const { prompt, text } = body;
-    
-    
-    
+    const { prompt, text, model } = body;
 
-
-    return {responce: await requestLLModel(prompt, text)};
+    return {responce: await requestLLModel(prompt, text, model)};
 });
